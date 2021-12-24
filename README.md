@@ -3,6 +3,7 @@
 ```node index.js -p 9000 -o YOURPATH/ql/config -f jds.txt```
 
 在青龙 config.sh 里面添加 bash 脚本
+
 ```
 FILE=/ql/config/jds.txt
 
@@ -14,3 +15,6 @@ if [ -f "$FILE" ]; then
   fi
 fi
 ```
+添加 cron 任务，定时输出cookie
+
+```curl -fsSL 'http://127.0.0.1:9002/api/v1/generate' > /dev/null 2>&1```
