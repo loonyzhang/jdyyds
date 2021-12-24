@@ -17,4 +17,4 @@ fi
 ```
 添加 cron 任务，定时输出cookie
 
-```* */3 * * * /usr/bin/curl -fsSL 'http://127.0.0.1:9002/api/v1/generate' > /dev/null 2>&1```
+```* 0/3 * * * /usr/bin/curl -fsSL 'http://127.0.0.1:9002/api/v1/generate' > /dev/null 2>&1```
