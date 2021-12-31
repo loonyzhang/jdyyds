@@ -21,16 +21,6 @@ const cli = meow({
       alias: "p",
       default: "9000",
     },
-    output: {
-      type: "string",
-      alias: "o",
-      default: ".",
-    },
-    file: {
-      type: "string",
-      alias: "f",
-      default: "jds.txt",
-    },
   },
 });
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -79,7 +69,7 @@ async function init() {
   router.post("/api/v1/info", async (ctx, next) => {
     const pt_key = ctx.request.body.pt_key;
     const pt_pin = ctx.request.body.pt_pin;
-    const remarks = ctx.request.body.remarks || '';
+    const remarks = ctx.request.body.remarks || "";
     if (!pt_key || !pt_pin) {
       ctx.body = {
         code: 1,
@@ -110,11 +100,11 @@ async function init() {
       const remarks = val.remarks;
       return {
         value: `pt_pin=${pin};pt_key=${key};`,
-        remarks
-      }
+        remarks,
+      };
     });
-    const delRes = await ql.delAllEnv()
-    const addRes = await ql.addAllEnv(allCookies)
+    const delRes = await ql.delAllEnv();
+    const addRes = await ql.addAllEnv(allCookies);
     ctx.body = {
       code: 0,
       msg: "success",
