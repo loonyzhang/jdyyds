@@ -56,6 +56,7 @@ async function init() {
   const app = new Koa();
   const router = new Router();
   router.get("/api/v1/info", async (ctx, next) => {
+    await db.read();
     const len = Object.keys(db.data.users).length;
     ctx.body = {
       code: 0,
@@ -94,6 +95,7 @@ async function init() {
     };
   });
   router.get("/api/v1/generate", async (ctx, next) => {
+    await db.read();
     const allCookies = Object.keys(db.data.users).map((pin) => {
       const val = db.data.users[pin];
       const key = val.pt_key;
