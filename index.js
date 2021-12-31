@@ -113,12 +113,15 @@ async function init() {
         remarks
       }
     });
-    // const res = await ql.delAllEnv()
-    console.log(allCookies)
+    const delRes = await ql.delAllEnv()
+    const addRes = await ql.addAllEnv(allCookies)
     ctx.body = {
       code: 0,
       msg: "success",
-      data: allCookies,
+      data: {
+        delRes,
+        addRes,
+      },
     };
   });
   app
