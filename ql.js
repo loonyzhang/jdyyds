@@ -20,7 +20,7 @@ export default class QLService {
     const body = await this.api({
       url: "api/envs",
       searchParams: {
-        searchValue: "JD_COOKIE2",
+        searchValue: "JD_COOKIE",
         t: Date.now(),
       },
       headers: {
@@ -96,7 +96,7 @@ export default class QLService {
     envArr = envArr.map((item) => {
       return {
         ...item,
-        name: "JD_COOKIE2",
+        name: "JD_COOKIE",
       };
     });
     const token = await this.getToken();
