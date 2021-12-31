@@ -9,6 +9,9 @@ import Koa from "koa";
 import Router from "@koa/router";
 import cors from "@koa/cors";
 import koabody from "koa-body";
+import QLService from "./ql.js";
+
+const ql = new QLService("/root/ql", "http://127.0.0.1:9001");
 
 const cli = meow({
   importMeta: import.meta,
@@ -36,9 +39,6 @@ const file = join(__dirname, "db.json");
 const adapter = new JSONFile(file);
 const db = new Low(adapter);
 
-const a = normalize(cli.flags.output);
-const b = join(a, cli.flags.file)
-
 init();
 
 function calcDay(start) {
@@ -48,6 +48,15 @@ function calcDay(start) {
 
 async function init() {
   await db.read();
+  /**
+   * users: {
+   *  pt_pin: {
+   *    pt_key: 'xxx',
+   *    remarks: 备注
+   *  }
+   * }
+   * startTime: timestamp
+   */
   db.data = db.data || {
     users: {},
     startTime: Date.now(),
@@ -70,6 +79,7 @@ async function init() {
   router.post("/api/v1/info", async (ctx, next) => {
     const pt_key = ctx.request.body.pt_key;
     const pt_pin = ctx.request.body.pt_pin;
+    const remarks = ctx.request.body.remarks || '';
     if (!pt_key || !pt_pin) {
       ctx.body = {
         code: 1,
@@ -78,7 +88,10 @@ async function init() {
       };
       return;
     }
-    db.data.users[pt_pin] = pt_key;
+    db.data.users[pt_pin] = {
+      pt_key,
+      remarks,
+    };
     await db.write();
     const len = Object.keys(db.data.users).length;
     ctx.body = {
@@ -92,15 +105,16 @@ async function init() {
   });
   router.get("/api/v1/generate", async (ctx, next) => {
     const allCookies = Object.keys(db.data.users).map((pin) => {
-      const key = db.data.users[pin];
-      const cookie = `pt_pin=${pin};pt_key=${key};`;
-      return cookie;
+      const val = db.data.users[pin];
+      const key = val.pt_key;
+      const remarks = val.remarks;
+      return {
+        value: `pt_pin=${pin};pt_key=${key};`,
+        remarks
+      }
     });
-    const filePath = normalize(cli.flags.output);
-    await fs.writeFile(join(filePath, cli.flags.file), allCookies.join("\n"), {
-      encoding: "utf8",
-      flag: "w",
-    });
+    // const res = await ql.delAllEnv()
+    console.log(allCookies)
     ctx.body = {
       code: 0,
       msg: "success",
