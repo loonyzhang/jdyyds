@@ -118,6 +118,7 @@ async function init() {
     const delRes = await ql.delAllEnv();
     const addRes = await ql.addAllEnv(allCookies);
     db.data.shouldUpdate = false;
+    await db.write();
     ctx.body = {
       code: 0,
       msg: "success",
