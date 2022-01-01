@@ -50,6 +50,7 @@ async function init() {
   db.data = db.data || {
     users: {},
     startTime: Date.now(),
+    shouldUpdate: true,
   };
   await db.write();
 
@@ -83,6 +84,7 @@ async function init() {
       pt_key,
       remarks,
     };
+    db.data.shouldUpdate = true;
     await db.write();
     const len = Object.keys(db.data.users).length;
     ctx.body = {
@@ -96,6 +98,14 @@ async function init() {
   });
   router.get("/api/v1/generate", async (ctx, next) => {
     await db.read();
+    if (!db.data.shouldUpdate) {
+      ctx.body = {
+        code: 0,
+        msg: "no need to update",
+        data: null,
+      };
+      return;
+    }
     const allCookies = Object.keys(db.data.users).map((pin) => {
       const val = db.data.users[pin];
       const key = val.pt_key;
@@ -107,6 +117,7 @@ async function init() {
     });
     const delRes = await ql.delAllEnv();
     const addRes = await ql.addAllEnv(allCookies);
+    db.data.shouldUpdate = false;
     ctx.body = {
       code: 0,
       msg: "success",
