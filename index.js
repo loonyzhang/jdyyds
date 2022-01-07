@@ -83,6 +83,7 @@ async function init() {
     db.data.users[pt_pin] = {
       pt_key,
       remarks,
+      updated: (new Date()).toISOString(),
     };
     db.data.shouldUpdate = true;
     await db.write();
