@@ -32,7 +32,7 @@ async function init() {
   const app = new Koa();
   const router = new Router();
   router.get("/api/v1/info", async (ctx, next) => {
-    const res = await ql.getEnvs();
+    const res = await ql.getEnvs(true);
     const len = res.length;
     ctx.body = {
       code: 0,
@@ -60,7 +60,7 @@ async function init() {
     if (cur) {
       const res = await ql.updateEnv(cur.id, cookie, remarks ?? cur.remarks);
       if (res.code === 200) {
-        const all = await ql.getEnvs();
+        const all = await ql.getEnvs(true);
         ctx.body = {
           code: 0,
           msg: "success",
@@ -79,7 +79,7 @@ async function init() {
     } else {
       const res = await ql.addEnv(cookie, remarks || '')
       if (res.code === 200) {
-        const all = await ql.getEnvs();
+        const all = await ql.getEnvs(true);
         ctx.body = {
           code: 0,
           msg: "success",

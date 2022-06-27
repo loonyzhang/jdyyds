@@ -42,7 +42,7 @@ export default class QLService {
       this.token_type = res.data.token_type;
     }
   }
-  async getEnvs() {
+  async getEnvs(isValid) {
     const {data: res} = await this.instance({
       url: "/open/envs",
       params: {
@@ -50,7 +50,8 @@ export default class QLService {
         t: Date.now(),
       }
     });
-    return res.data;
+    const result = isValid ? res.data.filter((item) => item.status === 0) : res.data
+    return result
   }
   async addEnv(cookie, remarks) {
     const {data: res} = await this.instance({
@@ -79,7 +80,14 @@ export default class QLService {
         remarks,
       },
     });
-    return res;
+    const updateId = res.data.id;
+    const {data: res2} = await this.instance({
+      method: "put",
+      url: "/open/envs/enable",
+      params: { t: Date.now() },
+      data: [updateId],
+    });
+    return res2;
   }
   async getEnvByPtPin(ptpin) {
     const envs = await this.getEnvs();
