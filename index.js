@@ -1,8 +1,3 @@
-import { join, dirname, normalize } from "path";
-import fs from "fs/promises";
-import process from "process";
-import { Low, JSONFile } from "lowdb";
-import { fileURLToPath } from "url";
 import meow from "meow";
 
 import Koa from "koa";
@@ -11,8 +6,7 @@ import cors from "@koa/cors";
 import koabody from "koa-body";
 import QLService from "./ql.js";
 
-const ql = new QLService("/root/ql", "http://127.0.0.1:9001");
-
+const ql = new QLService("http://132.226.18.48:9001");
 const cli = meow({
   importMeta: import.meta,
   flags: {
@@ -23,11 +17,7 @@ const cli = meow({
     },
   },
 });
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const file = join(__dirname, "db.json");
-const adapter = new JSONFile(file);
-const db = new Low(adapter);
 
 init();
 
@@ -37,41 +27,26 @@ function calcDay(start) {
 }
 
 async function init() {
-  await db.read();
-  /**
-   * users: {
-   *  pt_pin: {
-   *    pt_key: 'xxx',
-   *    remarks: 备注
-   *  }
-   * }
-   * startTime: timestamp
-   */
-  db.data = db.data || {
-    users: {},
-    startTime: Date.now(),
-    shouldUpdate: true,
-  };
-  await db.write();
+  const STARTDATE = '2021-12-24';
 
   const app = new Koa();
   const router = new Router();
   router.get("/api/v1/info", async (ctx, next) => {
-    await db.read();
-    const len = Object.keys(db.data.users).length;
+    const res = await ql.getEnvs();
+    const len = res.length;
     ctx.body = {
       code: 0,
       msg: "success",
       data: {
         users: len,
-        day: calcDay(db.data.startTime),
+        day: calcDay(new Date(STARTDATE).getTime()),
       },
     };
   });
   router.post("/api/v1/info", async (ctx, next) => {
     const pt_key = ctx.request.body.pt_key;
     const pt_pin = ctx.request.body.pt_pin;
-    const remarks = ctx.request.body.remarks || "";
+    const remarks = ctx.request.body.remarks;
     if (!pt_key || !pt_pin) {
       ctx.body = {
         code: 1,
@@ -80,54 +55,47 @@ async function init() {
       };
       return;
     }
-    db.data.users[pt_pin] = {
-      pt_key,
-      remarks,
-      updated: (new Date()).toISOString(),
-    };
-    db.data.shouldUpdate = true;
-    await db.write();
-    const len = Object.keys(db.data.users).length;
-    ctx.body = {
-      code: 0,
-      msg: "success",
-      data: {
-        users: len,
-        day: calcDay(db.data.startTime),
-      },
-    };
-  });
-  router.get("/api/v1/generate", async (ctx, next) => {
-    await db.read();
-    if (!db.data.shouldUpdate) {
-      ctx.body = {
-        code: 0,
-        msg: "no need to update",
-        data: null,
-      };
-      return;
+    const cur = await ql.getEnvByPtPin(pt_pin);
+    const cookie = `pt_pin=${pt_pin};pt_key=${pt_key};`
+    if (cur) {
+      const res = await ql.updateEnv(cur.id, cookie, remarks ?? cur.remarks);
+      if (res.code === 200) {
+        const all = await ql.getEnvs();
+        ctx.body = {
+          code: 0,
+          msg: "success",
+          data: {
+            users: all.length,
+            day: calcDay(new Date(STARTDATE).getTime()),
+          },
+        };
+      } else {
+        ctx.body = {
+          code: 1,
+          msg: "update error",
+          data: null,
+        };
+      }
+    } else {
+      const res = await ql.addEnv(cookie, remarks || '')
+      if (res.code === 200) {
+        const all = await ql.getEnvs();
+        ctx.body = {
+          code: 0,
+          msg: "success",
+          data: {
+            users: all.length,
+            day: calcDay(new Date(STARTDATE).getTime()),
+          },
+        };
+      } else {
+        ctx.body = {
+          code: 1,
+          msg: "add error",
+          data: null,
+        };
+      }
     }
-    const allCookies = Object.keys(db.data.users).map((pin) => {
-      const val = db.data.users[pin];
-      const key = val.pt_key;
-      const remarks = val.remarks;
-      return {
-        value: `pt_pin=${pin};pt_key=${key};`,
-        remarks,
-      };
-    });
-    const delRes = await ql.delAllEnv();
-    const addRes = await ql.addAllEnv(allCookies);
-    db.data.shouldUpdate = false;
-    await db.write();
-    ctx.body = {
-      code: 0,
-      msg: "success",
-      data: {
-        delRes,
-        addRes,
-      },
-    };
   });
   app
     .use(

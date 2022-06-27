@@ -1,75 +1,85 @@
-import got from "got";
-import { readFile } from "fs/promises";
-import path from "path";
+import axios from "axios";
 
 export default class QLService {
-  constructor(dir = "/ql", apiPrefix = "http://127.0.0.1:5600") {
-    this.dir = dir;
-    this.authFile = path.join(dir, "config/auth.json");
-    this.api = got.extend({
-      prefixUrl: apiPrefix,
-      retry: { limit: 0 },
+  constructor(apiPrefix = "http://127.0.0.1:5600") {
+    this.replyCount = 0;
+    this.token = '';
+    this.token_type = ''
+    this.instance = axios.create({
+      baseURL: apiPrefix,
+    });
+    this.instance.interceptors.request.use((config) => {
+      config.headers['Authorization'] = `${this.token_type} ${this.token}`;
+      return config;
+    })
+    this.instance.interceptors.response.use((response) => {
+      return response;
+    }, async (error) => {
+      if (error.response.status === 401) {
+        if (this.replyCount < 1) {
+          console.log('重试一次');
+          this.replyCount += 1;
+          await this.initToken();
+          return this.instance(error.response.config);
+        } else {
+          return Promise.reject(error);
+        }
+      }
+      return Promise.reject(error);
     });
   }
-  async getToken() {
-    const authConfig = JSON.parse(await readFile(this.authFile));
-    return authConfig.token;
+  async initToken() {
+    const {data: res} = await this.instance({
+      url: '/open/auth/token',
+      method: 'get',
+      params: {
+        client_id: '6Awe7pwp3_kv',
+        client_secret: 't6YBivBpBvB_MaMB33CJsRSO'
+      }
+    });
+    if (res.code === 200) {
+      this.token = res.data.token;
+      this.token_type = res.data.token_type;
+    }
   }
   async getEnvs() {
-    const token = await this.getToken();
-    const body = await this.api({
-      url: "api/envs",
-      searchParams: {
+    const {data: res} = await this.instance({
+      url: "/open/envs",
+      params: {
         searchValue: "JD_COOKIE",
         t: Date.now(),
-      },
-      headers: {
-        Accept: "application/json",
-        authorization: `Bearer ${token}`,
-      },
-    }).json();
-    return body.data;
+      }
+    });
+    return res.data;
   }
   async addEnv(cookie, remarks) {
-    const token = await this.getToken();
-    const body = await this.api({
+    const {data: res} = await this.instance({
       method: "post",
-      url: "api/envs",
-      searchParams: { t: Date.now() },
-      json: [
+      url: "/open/envs",
+      params: { t: Date.now() },
+      data: [
         {
           name: "JD_COOKIE",
           value: cookie,
-          remarks,
+          remarks: remarks ?? '',
         },
       ],
-      headers: {
-        Accept: "application/json",
-        authorization: `Bearer ${token}`,
-        "Content-Type": "application/json;charset=UTF-8",
-      },
-    }).json();
-    return body;
+    });
+    return res;
   }
-  async updateEnv(cookie, eid, remarks) {
-    const token = await this.getToken();
-    const body = await this.api({
+  async updateEnv(id, cookie, remarks) {
+    const {data: res} = await this.instance({
       method: "put",
-      url: "api/envs",
-      searchParams: { t: Date.now() },
-      json: {
+      url: "/open/envs",
+      params: { t: Date.now() },
+      data: {
         name: "JD_COOKIE",
         value: cookie,
-        _id: eid,
+        id: id,
         remarks,
       },
-      headers: {
-        Accept: "application/json",
-        authorization: `Bearer ${token}`,
-        "Content-Type": "application/json;charset=UTF-8",
-      },
-    }).json();
-    return body;
+    });
+    return res;
   }
   async getEnvByPtPin(ptpin) {
     const envs = await this.getEnvs();
@@ -83,55 +93,5 @@ export default class QLService {
       }
     }
     return "";
-  }
-  /**
-   *
-   * @param {
-   *   value: CK,
-   *   remarks: 备注
-   * } envArr
-   * @returns
-   */
-  async addAllEnv(envArr) {
-    envArr = envArr.map((item) => {
-      return {
-        ...item,
-        name: "JD_COOKIE",
-      };
-    });
-    const token = await this.getToken();
-    const body = await this.api({
-      method: "post",
-      url: "api/envs",
-      searchParams: { t: Date.now() },
-      json: envArr,
-      headers: {
-        Accept: "application/json",
-        authorization: `Bearer ${token}`,
-        "Content-Type": "application/json;charset=UTF-8",
-      },
-    }).json();
-    return body;
-  }
-  async delAllEnv() {
-    const token = await this.getToken();
-    const envs = await this.getEnvs();
-    const allEids = envs.map((item) => item._id) || [];
-    if (allEids.length > 0) {
-      const body = await this.api({
-        method: "delete",
-        url: "api/envs",
-        searchParams: { t: Date.now() },
-        body: JSON.stringify(allEids),
-        headers: {
-          Accept: "application/json",
-          authorization: `Bearer ${token}`,
-          "Content-Type": "application/json;charset=UTF-8",
-        },
-      }).json();
-      return body;
-    } else {
-      return { code: 200 };
-    }
   }
 }
