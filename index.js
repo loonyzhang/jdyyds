@@ -6,18 +6,18 @@ import cors from "@koa/cors";
 import koabody from "koa-body";
 import QLService from "./ql.js";
 
-const ql = new QLService("http://132.226.18.48:9001");
 const cli = meow({
   importMeta: import.meta,
   flags: {
-    port: {
+    qinglong: {
       type: "string",
-      alias: "p",
-      default: "9000",
+      alias: "ql",
+      default: "http://127.0.0.1:9001",
     },
   },
 });
 
+const ql = new QLService(cli.flags.qinglong);
 
 init();
 
@@ -107,7 +107,7 @@ async function init() {
     .use(router.routes())
     .use(router.allowedMethods());
 
-  app.listen(cli.flags.port, () => {
-    console.log(`Server running at http://127.0.0.1:${cli.flags.port}/`);
+  app.listen(9000, () => {
+    console.log(`Server running at http://127.0.0.1:9000/`);
   });
 }
