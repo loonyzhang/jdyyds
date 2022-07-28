@@ -29,8 +29,8 @@ export default class QLService {
     });
   }
   async initToken() {
-    const {data: res} = await this.instance({
-      url: '/open/auth/token',
+    const {data: res} = await axios({
+      url: this.instance.defaults.baseURL + '/open/auth/token',
       method: 'get',
       params: {
         client_id: '6Awe7pwp3_kv',
