@@ -32,13 +32,12 @@ async function init() {
   const app = new Koa();
   const router = new Router();
   router.get("/api/v1/info", async (ctx, next) => {
-    const res = await ql.getEnvs(true);
-    const len = res.length;
+    const res = await ql.getEnvs();
     ctx.body = {
       code: 0,
       msg: "success",
       data: {
-        users: len,
+        users: dealUsers(res),
         day: calcDay(new Date(STARTDATE).getTime()),
       },
     };
@@ -60,12 +59,12 @@ async function init() {
     if (cur) {
       const res = await ql.updateEnv(cur.id, cookie, remarks ?? cur.remarks);
       if (res.code === 200) {
-        const all = await ql.getEnvs(true);
+        const all = await ql.getEnvs();
         ctx.body = {
           code: 0,
           msg: "success",
           data: {
-            users: all.length,
+            users: dealUsers(all),
             day: calcDay(new Date(STARTDATE).getTime()),
           },
         };
@@ -79,12 +78,12 @@ async function init() {
     } else {
       const res = await ql.addEnv(cookie, remarks || '')
       if (res.code === 200) {
-        const all = await ql.getEnvs(true);
+        const all = await ql.getEnvs();
         ctx.body = {
           code: 0,
           msg: "success",
           data: {
-            users: all.length,
+            users: dealUsers(all),
             day: calcDay(new Date(STARTDATE).getTime()),
           },
         };
@@ -109,5 +108,16 @@ async function init() {
 
   app.listen(9000, () => {
     console.log(`Server running at http://127.0.0.1:9000/`);
+  });
+}
+
+function dealUsers(arr) {
+  return arr.map((item) => {
+    const ptpin = item.value.match(/pt_pin=([^; ]+)(?=;?)/)[1];
+    return {
+      ptpin: ptpin,
+      remarks: item.remarks,
+      status: item.status,
+    }
   });
 }
