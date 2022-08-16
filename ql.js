@@ -92,11 +92,12 @@ export default class QLService {
   async getEnvByPtPin(ptpin) {
     const envs = await this.getEnvs();
     for (let i = 0; i < envs.length; i++) {
-      var tempptpin = decodeURIComponent(
-        envs[i].value.match(/pt_pin=([^; ]+)(?=;?)/) &&
-          envs[i].value.match(/pt_pin=([^; ]+)(?=;?)/)[1]
-      );
-      if (tempptpin == ptpin) {
+      var tempptpin = envs[i].value.match(/pt_pin=([^; ]+)(?=;?)/) && envs[i].value.match(/pt_pin=([^; ]+)(?=;?)/)[1];
+      // var tempptpin = decodeURIComponent(
+      //   envs[i].value.match(/pt_pin=([^; ]+)(?=;?)/) &&
+      //     envs[i].value.match(/pt_pin=([^; ]+)(?=;?)/)[1]
+      // );
+      if (tempptpin == ptpin || decodeURIComponent(tempptpin) == ptpin) {
         return envs[i];
       }
     }
