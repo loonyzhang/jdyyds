@@ -19,6 +19,8 @@ export default class QLService {
         if (this.replyCount < 1) {
           console.log('重试一次');
           this.replyCount += 1;
+          this.token = ''
+          this.token_type = ''
           await this.initToken();
           return this.instance(error.response.config);
         } else {
@@ -37,6 +39,7 @@ export default class QLService {
         client_secret: 't6YBivBpBvB_MaMB33CJsRSO'
       }
     });
+    console.log(`获取token ${this.token} ${this.token_type}`)
     if (res.code === 200) {
       this.token = res.data.token;
       this.token_type = res.data.token_type;
